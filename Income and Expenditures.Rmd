@@ -1,0 +1,148 @@
+---
+title: "TidyTuesday Week 8: Income and Expenditures"
+author: "Alonso Cordova"
+date: "2/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(scales)
+
+```
+
+## Tidy Tuesday Week 8, February 15 2021
+
+
+
+
+
+
+
+# df: income
+```{r}
+
+# pull data
+income <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/income.csv')
+
+
+# turning data long in order to plot it 
+income <- gather(income, type, type_per, 3:7)
+
+
+# mutating type_per and class for aesthetics
+income <- income %>% 
+  clean_names() %>% 
+  mutate(type_per = type_per*.01,
+         class = case_when(class == "Over $1000"~ "$1000+",
+                            TRUE ~ class))
+
+
+# creating df to use in geom text
+avg_income <- income %>% 
+  select(class,actual_average) %>% 
+  distinct() %>% 
+  mutate(type_per = 1,
+         actual_average = round(actual_average,0))
+
+# creating list that will be used to order factors for class
+income_order <- avg_income %>% 
+  arrange(-actual_average) %>% 
+  select(class) %>% 
+  unlist()
+
+
+
+# turning relevant columns into factors so they can retain their order
+income$type <- factor(income$type, levels = c("Tax","Other","Clothes","Food","Rent"))
+
+income$class <- factor(income$class, levels = income_order)
+
+
+
+# colors used in scale_fill_manual
+mycolors <- c("#aba4a0", "#d1bfa9","#db9d8b","#82607d", "black")
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+#plt: income
+```{r}
+
+
+p1 <- ggplot(income, aes(fill = type, y=type_per, x=class)) + 
+  geom_bar(position="fill", stat="identity", width = .9, color = "black") +
+  geom_text(data = avg_income, 
+            aes(class, type_per,
+                label = actual_average, 
+                fill = NULL), 
+            hjust = -.2,
+            size = 4) + 
+  scale_y_continuous(limits = c(0,1.2),
+                     expand = c(0,0), 
+                     breaks = c(0,.10,.20,.30,.40,.50,.60,.70,.80,.90,1), 
+                     labels = scales::percent) +#+  # breaks = c(0,.25,.5,.75,1),
+  scale_fill_manual(values=mycolors) +
+  labs(title = "Income and Expenditure of 150 Negro Families in Atlanta, GA",
+       subtitle = "",
+       x = "Class",
+       y = "Percent of Income Used",
+       tag = "Average Annual Income ($)", #"Summer Eligible Students (Failed 2/3 Courses)"
+       fill = "Type:",
+       caption = "Data: #DuBoisChallenge | @Alocord") +
+   coord_flip() +
+   theme (
+      plot.title        = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 10, face = "bold"),
+   #   plot.subtitle     = element_text(face = 'bold', size = 12),
+      plot.caption      = element_text(size = 8),
+      ##
+      panel.background = element_rect(fill="#cfb9a5"),
+      plot.background = element_rect(fill="#cfb9a5"),
+
+      panel.grid        = element_blank(),
+      ##
+   #   legend.box.background = element_rect(color = "black"),
+      legend.position    = c(.35,1.027),#legend.position    = "top", # top right
+      legend.key.size = unit(.45, 'cm'),#unit(.5,"line"),
+      legend.title = element_text(size = 10),
+      legend.background = element_rect(fill="#cfb9a5", linetype="blank" ),
+      #legend.key.size = unit(2, 'cm'),
+      ##
+      axis.title.x      = element_text(face = 'bold', size = 10),
+      #axis.text.x       = element_blank(), #element_text(angle = 90),
+      plot.tag          = element_text(face = 'bold', size = 12,angle = -90),
+      plot.tag.position = c(0.93, 0.52),
+      ##
+      axis.title.y      = element_blank(),
+      axis.text.y       = element_text(face = 'bold', size = 12), # element_blank(), #element_text(face = 'bold', size = 10),
+      axis.line.y       = element_line(),
+      ##
+      axis.ticks.y        = element_blank(), 
+      plot.margin       = unit(c(.15, .05, .05, .20), "in")) +
+  #    plot.margin       = unit(c(.05, .00, .05, .10), "in")) +
+guides(fill = guide_legend(reverse = TRUE, direction = "horizontal"))# + guides(color=guide_legend(override.aes=list(fill=NA)))
+
+  
+p1  
+  
+
+ggsave("Income_Expenditures.png",p1, height = 6, width = 10)
+
+
+
+```
+
+
+
+
+
+
+ 
